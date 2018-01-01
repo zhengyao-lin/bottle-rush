@@ -1,9 +1,60 @@
 #! /usr/bin/python3
 
+"""
+
+this.camera.position.set(-17, 30, 26);
+this.camera.lookAt(new THREE.Vector3(13, 0, -4));
+
+The jumping calculation
+
+var GAME = exports.GAME = {
+	BOTTOMBOUND: -55,
+	TOPBOUND: 41,
+	gravity: 720,
+	//gravity: 750,
+	touchmoveTolerance: 20,
+	LEFTBOUND: -140,
+	topTrackZ: -30,
+	rightBound: 90,
+	HEIGHT: window.innerHeight > window.innerWidth ? window.innerHeight : window.innerWidth,
+	WIDTH: window.innerHeight < window.innerWidth ? window.innerHeight : window.innerWidth,
+	canShadow: true
+};
+
+var BOTTLE = exports.BOTTLE = {
+	// bodyWidth: 2.8,
+	// bodyDepth: 2.8,
+	headRadius: 0.945,
+	bodyWidth: 2.34,
+	bodyDepth: 2.34,
+
+	bodyHeight: 3.2,
+
+	reduction: 0.005,
+	minScale: 0.5,
+	velocityYIncrement: 15,
+	velocityY: 135,
+	velocityZIncrement: 70
+};
+
+duration = duration in sec
+vel_z = min(150, duration * BOTTLE.velocityZIncrement)
+vel_y = min(BOTTLE.velocityY + duration * BOTTLE.velocityYIncrement, 180)
+
+dy = (vel_y - GAME.gravity * flyingTime) * t - GAME.gravity / 2 * t * t
+
+x = duration
+
+v0 = 15x + 135
+
+t = v0 / g * 2
+dist = t * (70x)
+
+
+
+"""
+
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from PIL import Image
 import math
 import time
@@ -13,8 +64,8 @@ import os
 import io
 
 RESIZE_RATIO = 0.3
-SIM_PRESS_X = 200
-SIM_PRESS_Y = 200
+SIM_PRESS_X = 600
+SIM_PRESS_Y = 600
 TIME_DIST_RATIO = 1.52
 
 DELAY_FRAME = 2
@@ -33,6 +84,9 @@ JUMP_LEFT_ANGLE_COS = JUMP_LEFT_ANGLE_SIN / JUMP_LEFT_ANGLE_TAN
 
 JUMP_RIGHT_ANGLE = math.asin(JUMP_RIGHT_ANGLE_SIN)
 JUMP_LEFT_ANGLE = math.asin(JUMP_LEFT_ANGLE_SIN)
+
+BOTTLE_IMG_PATH = "bottle.png"
+BOTTLE_IMG = None
 
 # 1 = 263.333pt
 # 450 ms -> 2
@@ -85,24 +139,21 @@ def on_mouse(event, x, y, flags, param):
         print("found bottle at", bottle_pos)
         do_jump(bottle_pos, (x, y))
 
-def find_bottle(resize = RESIZE_RATIO):
-    global screen
+def find_bottle(screen, resize = RESIZE_RATIO):
+    w, h = BOTTLE_IMG.shape[::-1]
 
-    bottle = cv2.imread("bottle.png", 0)
-    w, h = bottle.shape[::-1]
-    bottle = cv2.resize(bottle, (int(w * resize), int(h * resize)))
-    w, h = bottle.shape[::-1]
-
-    res = cv2.matchTemplate(cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY), bottle.astype(np.uint8), cv2.TM_CCOEFF_NORMED)
+    res = cv2.matchTemplate(cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY), BOTTLE_IMG, cv2.TM_CCOEFF_NORMED)
 
     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 
     pos = (int(max_loc[0] + w / 2), int(max_loc[1] + h * 0.9))
 
+    cv2.rectangle(screen, max_loc, (max_loc[0] + w, max_loc[1] + h), (0, 0, 0), 2)
+    # cv2.rectangle(screen, min_loc, (min_loc[0] + w, min_loc[1] + h), (0, 0, 255), 2)
     cv2.circle(screen, pos, 2, (0, 0, 0), -1)
     # cv2.imshow("screen", screen)
 
-    return pos
+    return pos, max_val
 
     # cv2.rectangle(screen, min_loc, (min_loc[0] + w, min_loc[1] + h), (0, 0, 255), 2)
     # cv2.rectangle(screen, max_loc, (max_loc[0] + w, max_loc[1] + h), (0, 0, 0), 2)
@@ -171,7 +222,7 @@ def adjust(rough):
 
     rx, ry = rough[0], rough[1]
 
-    if rx < 0 or rx > w or ry < 0 or ry > h:
+    if rx < 0 or rx >= w or ry < 0 or ry >= h:
         return rough
     
     _, _, _, (x1, y1, x2, y2) = \
@@ -179,19 +230,52 @@ def adjust(rough):
 
     return int(x1 + x2 / 2), int(y1 + y2 / 2)
 
+def init_bottle(screen, path = BOTTLE_IMG_PATH, resize = RESIZE_RATIO):
+    global BOTTLE_IMG
+
+    bottle = cv2.imread(path, 0)
+    w, h = bottle.shape[::-1]
+    sh, sw = screen.shape[:-1]
+
+    bottle = cv2.resize(bottle, (int(w * resize), int(h * resize))).astype(np.uint8)
+
+    BOTTLE_IMG = bottle
+
+    maxv = -float("inf")
+    maxscale = 0
+
+    # try different scales to get the optimal match
+    for scale in np.linspace(0.2, 5, 10)[::-1]:
+        scale = float(scale)
+        print("trying scale " + str(scale))
+
+        nscreen = cv2.resize(screen, (int(sw * scale), int(sh * scale)))
+        _, val = find_bottle(nscreen, resize = 1)
+
+        if val > maxv:
+            maxv = val
+            maxscale = scale
+
+    print("optimal scale " + str(maxscale))
+
 cv2.namedWindow("screen")
 cv2.setMouseCallback("screen", on_mouse)
 
 mode = "coach"
 key = 0
 delay = 0
+init = False
 
 while True:
     screen = screencap(resize = RESIZE_RATIO)
 
+    if not init:
+        init = True
+        init_bottle(screencap())
+
     # print(screen.shape)
 
-    bottle_pos = find_bottle()
+    bottle_pos, _ = find_bottle(screen)
     next_pos = rough(bottle_pos)
     next_pos = adjust(next_pos)
 
@@ -205,6 +289,8 @@ while True:
         print("stop auto mode")
         mode = "coach"
     elif key == ord("c"):
+        print("reinit screen")
+        init_bottle(screencap())
         print("continue auto mode")
         mode = "auto"
     
