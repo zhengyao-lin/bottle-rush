@@ -1,0 +1,76 @@
+
+pcenter (-17, 30, 26)
+normal (13, 0, -4)
+
+screen plane
+13x - 4z = -325
+
+initial block distance = 20
+
+HAV
+    TJSU = Three.JS Unit
+    u = pixels / TJSU
+    vc = virtual center -- the middle point connecting centers of two blocks
+
+    bottle height = 5.76
+    block height = 5.5
+
+WTF
+    actual distance that a line on the screen plane maps to
+
+ss1
+    1. next move is to the right
+    2. bottle at the center of the current block
+    3. on-screen distance is d
+
+    ^d = dir line's direction = (0, 0, 1)
+    n = normal = (13, 0, -14)
+
+    cos(a) = ^d . n / (|^d| * |n|)
+    cos(a) = (-14) / (1 * 19.1049731745428)
+    a = 0.7483780475235182
+
+    r = real length = d / sin(a)
+
+    ll = length on the normal
+    = d / tan(a) = 
+
+    (0, 0, r) is the end point position vector
+
+    ->l = (0, 0, 0) + t(0, 0, r) = (0, 0, tr)
+    ->n = (0, 0, r) + s(13, 0, -4) = (13s, 0, -4sr)
+
+    ^n = ->n / |n| = (13, 0, -4) / 13.601470508735444 =
+        (0.95577900872195, 0, -0.2940858488375231)
+
+    ->a = n on screen = (0, 0, r) + -ll * ^n
+        = (0, 0, r) + -ll * (0.95577900872195, 0, -0.2940858488375231)
+    
+    d = 10 # 98.6154146165801
+    ll = 10.76923076923077
+    r = 14.69613321118677
+
+    ->a = (-10.293004709313308, 0, 17.863211583283174)
+
+    angle of ->a = 0.5762124386941568
+
+ss2
+    1. same but is moving to the left
+
+    ^d = dir line's direction = (-1, 0, 0)
+    n = normal = (13, 0, -14)
+
+    cos(a) = ^d . n / (|^d| * |n|)
+    cos(a) = (-13) / (1 * 19.1049731745428)
+    a = 0.8224182792713783
+
+    real length = d / sin(a)
+
+    .. similar step
+
+    angle of ->a = 0.5419172526716592
+
+ss3
+    1. moving to the right, but not at the center of the block
+    2. 
+

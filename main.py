@@ -89,10 +89,10 @@ BOTTLE_IMG_PATH = "bottle.png"
 BOTTLE_IMG = None
 
 # 1 = 263.333pt
-# 450 ms -> 2
-# 620 ms -> 3
-# 790 ms -> 4
-# 980 ms -> 5
+# 450 ms -> 1
+# 620 ms -> 1.5
+# 790 ms -> 2
+# 980 ms -> 2.5
 
 adb = pyadb3.ADB()
 
