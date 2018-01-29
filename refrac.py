@@ -35,12 +35,11 @@ class Device:
         Device.PRESS_POINT = (w / 2 / Device.RESIZE, h / 2 / Device.RESIZE)
 
     def screencap(self):
-        self.adb.shell_command("screencap -p")
-        raw = self.adb.get_output()
-
         raw = self.screenraw()
         img = cv2.imdecode(np.fromstring(raw, np.uint8), cv2.IMREAD_COLOR)
+
         img = Util.resize(img, Device.RESIZE)
+
         return img
 
     def press(self, duration):
@@ -55,8 +54,13 @@ class AndroidDevice(Device):
         super(AndroidDevice, self).__init__()
 
     def screenraw(self):
-        self.adb.shell_command("screencap -p")
-        return self.adb.get_output()
+        self.adb.shell_command("screencap /sdcard/bottle-test.png")
+        self.adb.run_cmd([ "pull", "/sdcard/bottle-test.png", "bottle-test.png" ])
+
+        with open("bottle-test.png", "rb") as fp:
+            cont = fp.read()
+
+        return cont
 
     def taphold(self, x, y, duration):
         cmd = "input swipe %d %d %d %d %d" % (x, y, x, y, duration)
@@ -327,7 +331,10 @@ class Muscle:
         # dist = ((bx - nx) ** 2 + (by - ny) ** 2) ** 0.5
 
         print(dist)
-        dur = 1.3 * dist / Device.RESIZE + 110
+        
+        # dur = 1.3 * dist / Device.RESIZE + 110
+        dur = 1.22 * dist / Device.RESIZE + 100
+        
         return dur
 
         # print(dist)
@@ -396,7 +403,7 @@ last_jump = time.time()
 while True:
     screen = dev.screencap()
     res = marker.mark(screen)
-    dur = muscle.duration(*res) + random.uniform(-50, 50)
+    dur = muscle.duration(*res) # + random.uniform(-50, 50)
 
     marker.display(screen, *res)
 
